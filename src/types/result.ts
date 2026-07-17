@@ -75,4 +75,6 @@ export interface ExamResult {
 export interface UserSettings {
   confirmBeforeSubmit: boolean
   passageExpanded: boolean
+  syncCode?: string
+  cloudEnabled?: boolean
 }

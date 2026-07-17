@@ -15,6 +15,15 @@ export const STORAGE_KEYS = {
 
 const canUseStorage = () => typeof localStorage !== 'undefined'
 
+export interface SyncSnapshot {
+  version: number
+  importedExams: ExamPaper[]
+  progresses: Record<string, ExamProgress>
+  history: ExamResult[]
+  errorReasons: Record<string, ErrorReason>
+  settings: Pick<UserSettings, 'confirmBeforeSubmit' | 'passageExpanded'>
+}
+
 const read = <T>(key: string, fallback: T): T => {
   if (!canUseStorage()) return fallback
   try {
@@ -30,6 +39,7 @@ const write = <T>(key: string, value: T): boolean => {
   try {
     localStorage.setItem(STORAGE_KEYS.version, String(STORAGE_VERSION))
     localStorage.setItem(key, JSON.stringify(value))
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('ai-kaoyan-storage-change'))
     return true
   } catch {
     return false
@@ -66,6 +76,30 @@ export const examStorage = {
   },
   getSettings: () => read<UserSettings>(STORAGE_KEYS.settings, { confirmBeforeSubmit: true, passageExpanded: true }),
   saveSettings: (settings: UserSettings) => write(STORAGE_KEYS.settings, settings),
+  createSyncSnapshot(): SyncSnapshot {
+    const settings = this.getSettings()
+    return {
+      version: STORAGE_VERSION,
+      importedExams: this.getImported(),
+      progresses: this.getProgresses(),
+      history: this.getHistory(),
+      errorReasons: this.getReasons(),
+      settings: { confirmBeforeSubmit: settings.confirmBeforeSubmit, passageExpanded: settings.passageExpanded },
+    }
+  },
+  replaceWithSyncSnapshot(snapshot: SyncSnapshot): boolean {
+    const currentSettings = this.getSettings()
+    const validSnapshot = snapshot && snapshot.version === STORAGE_VERSION
+    if (!validSnapshot) return false
+    const values: Array<[string, unknown]> = [
+      [STORAGE_KEYS.importedExams, snapshot.importedExams],
+      [STORAGE_KEYS.progress, snapshot.progresses],
+      [STORAGE_KEYS.history, snapshot.history],
+      [STORAGE_KEYS.errorReasons, snapshot.errorReasons],
+      [STORAGE_KEYS.settings, { ...snapshot.settings, syncCode: currentSettings.syncCode, cloudEnabled: currentSettings.cloudEnabled } satisfies UserSettings],
+    ]
+    return values.every(([key, value]) => write(key, value))
+  },
 }
 
 export const serializeProgress = (progress: ExamProgress) => JSON.stringify(progress)

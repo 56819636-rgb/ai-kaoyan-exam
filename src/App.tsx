@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { AnswerValue, ExamPaper, ExamQuestion, FlatQuestion } from './types/exam'
 import { examQuestionCount, flattenExam } from './types/exam'
@@ -8,6 +8,7 @@ import { examStorage, STORAGE_VERSION } from './lib/storage'
 import { isAnswerEmpty, scoreExam } from './lib/scoring'
 import { formatDate, formatDuration, percent } from './lib/format'
 import { downloadText, makeExport, type ExportFormat } from './lib/export'
+import { normalizeSyncCode, pullSnapshot, pushSnapshot, SyncNotFoundError, validSyncCode } from './lib/sync'
 
 type ExamContextValue = {
   exams: ExamPaper[]
@@ -113,7 +114,7 @@ function Shell({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main className="page">{children}</main>
-      <footer className="footer">数据仅保存在当前浏览器 · 存储版本 v{STORAGE_VERSION}</footer>
+      <footer className="footer">默认保存在当前浏览器 · 可在设置中开启设备同步 · 存储版本 v{STORAGE_VERSION}</footer>
     </div>
   )
 }
@@ -127,7 +128,7 @@ function HomePage() {
       <section className="hero">
         <p className="eyebrow">155 天 · 湖南大学 MBA 备考实验</p>
         <h1>每一次作答，<br /><em>都留下可复盘的证据。</em></h1>
-        <p>专注管理类联考与英语二。无账号、无云端，打开即可开始。</p>
+      <p>专注管理类联考与英语二。无账号，打开即可开始；需要时可用简单同步码连接手机和电脑。</p>
       </section>
       <div className="section-heading">
         <div><p className="eyebrow">今日试卷</p><h2>选择一套开始</h2></div>
@@ -429,8 +430,70 @@ function HistoryPage() {
 
 function SettingsPage() {
   const [settings, setSettings] = useState(examStorage.getSettings())
+  const [syncCode, setSyncCode] = useState(settings.syncCode ?? '')
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const update = (key: keyof typeof settings, value: boolean) => { const next = { ...settings, [key]: value }; setSettings(next); examStorage.saveSettings(next) }
-  return <><PageTitle eyebrow="偏好" title="设置" text="设置会自动保存在当前浏览器。" /><div className="settings-card"><Toggle label="交卷前二次确认" description="显示未答题和标记题数量后再确认交卷。" checked={settings.confirmBeforeSubmit} onChange={(value) => update('confirmBeforeSubmit', value)} /><Toggle label="默认展开英语原文" description="进入阅读题时直接显示文章，也可以随时收起。" checked={settings.passageExpanded} onChange={(value) => update('passageExpanded', value)} /></div><div className="info-panel"><h2>本地数据说明</h2><p>试卷进度、历史成绩和错因均保存在 localStorage。清除浏览器网站数据会一并删除，请定期导出重要成绩。</p></div></>
+  const connect = async () => {
+    if (!validSyncCode(syncCode)) { setSyncMessage({ type: 'error', text: '请输入 4 至 6 位数字同步码。' }); return }
+    // Keep cloud sync disabled until the first pull or upload has finished.
+    // This prevents a newly connected device from automatically overwriting
+    // an existing cloud snapshot while it is still downloading it.
+    const nextSettings = { ...examStorage.getSettings(), syncCode, cloudEnabled: false }
+    examStorage.saveSettings(nextSettings)
+    setSettings(nextSettings)
+    try {
+      const remote = await pullSnapshot(syncCode)
+      if (!examStorage.replaceWithSyncSnapshot(remote)) throw new Error('云端数据版本不匹配，请刷新网站后重试。')
+      const connectedSettings = { ...examStorage.getSettings(), syncCode, cloudEnabled: true }
+      examStorage.saveSettings(connectedSettings)
+      setSettings(connectedSettings)
+      setSyncMessage({ type: 'success', text: '已从云端同步。页面将在 1 秒后刷新，显示另一台设备的数据。' })
+      window.setTimeout(() => window.location.reload(), 1000)
+    } catch (error) {
+      if (error instanceof SyncNotFoundError) {
+        try {
+          await pushSnapshot(syncCode)
+          const connectedSettings = { ...examStorage.getSettings(), syncCode, cloudEnabled: true }
+          examStorage.saveSettings(connectedSettings)
+          setSettings(connectedSettings)
+          setSyncMessage({ type: 'success', text: '已创建云端同步空间。现在在手机输入相同同步码即可。' })
+        } catch (pushError) {
+          examStorage.saveSettings({ ...nextSettings, cloudEnabled: false })
+          setSettings({ ...nextSettings, cloudEnabled: false })
+          setSyncMessage({ type: 'error', text: pushError instanceof Error ? pushError.message : '创建同步空间失败。' })
+        }
+      } else {
+        examStorage.saveSettings({ ...nextSettings, cloudEnabled: false })
+        setSettings({ ...nextSettings, cloudEnabled: false })
+        setSyncMessage({ type: 'error', text: error instanceof Error ? error.message : '连接同步服务失败。' })
+      }
+    }
+  }
+  const syncNow = async () => {
+    if (!settings.cloudEnabled || !settings.syncCode) return
+    try { await pushSnapshot(settings.syncCode); setSyncMessage({ type: 'success', text: '已上传当前试卷、答案和成绩。' }) }
+    catch (error) { setSyncMessage({ type: 'error', text: error instanceof Error ? error.message : '同步失败。' }) }
+  }
+  const disconnect = () => {
+    const next = { ...settings, syncCode: undefined, cloudEnabled: false }
+    examStorage.saveSettings(next); setSettings(next); setSyncCode(''); setSyncMessage({ type: 'success', text: '已断开本设备。云端数据不会删除。' })
+  }
+  return <><PageTitle eyebrow="偏好" title="设置" text="设置会自动保存在当前浏览器。" /><div className="settings-card"><Toggle label="交卷前二次确认" description="显示未答题和标记题数量后再确认交卷。" checked={settings.confirmBeforeSubmit} onChange={(value) => update('confirmBeforeSubmit', value)} /><Toggle label="默认展开英语原文" description="进入阅读题时直接显示文章，也可以随时收起。" checked={settings.passageExpanded} onChange={(value) => update('passageExpanded', value)} /></div><section className="sync-card"><p className="eyebrow">DEVICE SYNC</p><h2>手机与电脑同步</h2><p>设置同一组数字后，导入试卷、答题进度、成绩和错题原因会自动同步。同步码简单易猜，仅用于非敏感练习数据。</p><label><span>同步码（4 至 6 位数字）</span><input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={syncCode} onChange={(event) => setSyncCode(normalizeSyncCode(event.target.value))} placeholder="例如 123456" /></label><div className="sync-actions"><button className="button primary" onClick={() => void connect()}>{settings.cloudEnabled ? '重新连接并下载' : '设置并连接'}</button>{settings.cloudEnabled && <><button className="button ghost" onClick={() => void syncNow()}>立即上传</button><button className="button ghost" onClick={disconnect}>断开本设备</button></>}</div>{syncMessage && <div className={`notice ${syncMessage.type}`}>{syncMessage.text}</div>}</section><div className="info-panel"><h2>本地数据说明</h2><p>即使开启同步，答题时仍会先保存到当前浏览器；断网也不会丢失。首次连接另一台设备时，云端数据会覆盖该设备的本地练习数据。</p></div></>
+}
+
+function CloudSyncBridge() {
+  const timer = useRef<number | null>(null)
+  useEffect(() => {
+    const schedule = () => {
+      const settings = examStorage.getSettings()
+      if (!settings.cloudEnabled || !settings.syncCode) return
+      if (timer.current) window.clearTimeout(timer.current)
+      timer.current = window.setTimeout(() => { void pushSnapshot(settings.syncCode!).catch(() => undefined) }, 1500)
+    }
+    window.addEventListener('ai-kaoyan-storage-change', schedule)
+    return () => { window.removeEventListener('ai-kaoyan-storage-change', schedule); if (timer.current) window.clearTimeout(timer.current) }
+  }, [])
+  return null
 }
 
 function Toggle({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (value: boolean) => void }) {
@@ -444,5 +507,5 @@ function PageTitle({ eyebrow, title, text }: { eyebrow: string; title: string; t
 function EmptyState({ title, text }: { title: string; text: string }) { return <div className="empty"><span>◇</span><h2>{title}</h2><p>{text}</p></div> }
 
 export default function App() {
-  return <HashRouter><ExamProvider><Shell><Routes><Route path="/" element={<HomePage />} /><Route path="/import" element={<ImportPage />} /><Route path="/intro/:examId" element={<IntroPage />} /><Route path="/exam/:examId" element={<ExamPage />} /><Route path="/result/:resultId" element={<ResultPage />} /><Route path="/history" element={<HistoryPage />} /><Route path="/settings" element={<SettingsPage />} /><Route path="*" element={<EmptyState title="页面不存在" text="请从顶部导航返回试卷列表。" />} /></Routes></Shell></ExamProvider></HashRouter>
+  return <HashRouter><CloudSyncBridge /><ExamProvider><Shell><Routes><Route path="/" element={<HomePage />} /><Route path="/import" element={<ImportPage />} /><Route path="/intro/:examId" element={<IntroPage />} /><Route path="/exam/:examId" element={<ExamPage />} /><Route path="/result/:resultId" element={<ResultPage />} /><Route path="/history" element={<HistoryPage />} /><Route path="/settings" element={<SettingsPage />} /><Route path="*" element={<EmptyState title="页面不存在" text="请从顶部导航返回试卷列表。" />} /></Routes></Shell></ExamProvider></HashRouter>
 }

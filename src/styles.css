@@ -262,6 +262,14 @@ code { padding: 2px 6px; border-radius: 4px; background: #ebe7dc; font-size: .9e
 .toggle-row i::after { position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; content: ''; background: white; border-radius: 50%; box-shadow: 0 1px 5px rgba(0,0,0,.2); transition: transform .2s; }
 .toggle-row input:checked + i { background: var(--green-2); }
 .toggle-row input:checked + i::after { transform: translateX(21px); }
+.sync-card { margin-top: 22px; padding: 25px; background: #f7f5ed; border: 1px solid var(--line); border-top: 3px solid var(--green); }
+.sync-card h2 { margin: 6px 0 8px; font-family: 'Songti SC', 'STSong', serif; font-size: 22px; }
+.sync-card > p:not(.eyebrow) { margin: 0 0 18px; color: var(--muted); line-height: 1.7; }
+.sync-card label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
+.sync-card input { width: 100%; min-height: 50px; box-sizing: border-box; padding: 10px 13px; color: var(--ink); border: 1px solid #b9c1bb; border-radius: 4px; background: #fffefa; font-size: 20px; letter-spacing: .18em; }
+.sync-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 13px; }
+.sync-actions .button { min-height: 46px; }
+.sync-card .notice { margin-bottom: 0; }
 
 @media (max-width: 820px) {
   .exam-grid, .analytics-grid { grid-template-columns: 1fr 1fr; }
@@ -277,6 +285,9 @@ code { padding: 2px 6px; border-radius: 4px; background: #ebe7dc; font-size: .9e
   .site-header nav { flex: 1; justify-content: flex-end; gap: 1px; }
   .site-header nav a { padding: 8px 10px; font-size: 13px; }
   .page { width: min(100% - 28px, 1040px); padding: 28px 0 60px; }
+  .sync-card { padding: 20px 16px; }
+  .sync-actions { display: grid; grid-template-columns: 1fr; }
+  .sync-actions .button { width: 100%; }
   .hero { padding: 18px 0 45px; }
   .hero h1 { font-size: 38px; }
   .hero > p:last-child { font-size: 15px; }
