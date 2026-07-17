@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ExamPaper } from '../types/exam'
 import type { ExamProgress } from '../types/result'
 import { restoreProgress, serializeProgress } from './storage'
-import { scoreExam } from './scoring'
+import { isAnswerEmpty, scoreExam } from './scoring'
 
 const exam: ExamPaper = {
   examId: 'test', title: '测试卷', subject: '逻辑推理', description: '', durationMinutes: 10, totalScore: 6, version: '1.0',
@@ -27,6 +27,17 @@ describe('scoreExam', () => {
     expect(result.bySection[0]).toMatchObject({ label: '形式逻辑', correct: 1, total: 2 })
     expect(result.byKnowledgePoint[0].accuracy).toBe(0.5)
     expect(result.byDifficulty).toHaveLength(2)
+  })
+
+  it('不会把未答或不可自动评分的题目误计为错误', () => {
+    const mixedExam: ExamPaper = { ...exam, totalScore: 9, sections: [{ ...exam.sections[0], questions: [...exam.sections[0].questions, { id: 'q3', type: 'essay', category: '写作', knowledgePoint: '论证有效性分析', difficulty: '中等', score: 3, question: '请作答' }] }] }
+    const mixedProgress: ExamProgress = { ...progress, answers: { q1: 'A', q2: [], q3: '一段答案' } }
+    const result = scoreExam(mixedExam, mixedProgress)
+    expect(result.correctCount).toBe(1)
+    expect(result.wrongCount).toBe(0)
+    expect(result.unansweredCount).toBe(1)
+    expect(result.ungradedCount).toBe(1)
+    expect(isAnswerEmpty([])).toBe(true)
   })
 })
 

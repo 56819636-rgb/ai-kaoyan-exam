@@ -9,6 +9,9 @@ export const answersEqual = (answer?: AnswerValue, correct?: AnswerValue) => {
   return answer === correct
 }
 
+export const isAnswerEmpty = (answer?: AnswerValue) =>
+  answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0)
+
 const groupResults = (results: QuestionResult[], key: keyof Pick<QuestionResult, 'category' | 'knowledgePoint' | 'difficulty'>): AccuracyGroup[] => {
   const groups = new Map<string, QuestionResult[]>()
   results.filter((r) => r.isCorrect !== null).forEach((result) => {
@@ -46,8 +49,8 @@ export const scoreExam = (exam: ExamPaper, progress: ExamProgress, submittedAt =
   })
   const gradable = questionResults.filter((item) => item.isCorrect !== null)
   const correctCount = gradable.filter((item) => item.isCorrect).length
-  const wrongCount = gradable.filter((item) => item.userAnswer !== undefined && !item.isCorrect).length
-  const unansweredCount = questionResults.filter((item) => item.userAnswer === undefined || item.userAnswer === '').length
+  const wrongCount = gradable.filter((item) => item.isCorrect === false && !isAnswerEmpty(item.userAnswer)).length
+  const unansweredCount = questionResults.filter((item) => isAnswerEmpty(item.userAnswer)).length
   const score = questionResults.reduce((sum, item) => sum + item.earnedScore, 0)
   const maxScore = questionResults.reduce((sum, item) => sum + item.maxScore, 0)
   return {

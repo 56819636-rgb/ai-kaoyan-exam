@@ -25,10 +25,15 @@ const read = <T>(key: string, fallback: T): T => {
   }
 }
 
-const write = <T>(key: string, value: T) => {
-  if (!canUseStorage()) return
-  localStorage.setItem(STORAGE_KEYS.version, String(STORAGE_VERSION))
-  localStorage.setItem(key, JSON.stringify(value))
+const write = <T>(key: string, value: T): boolean => {
+  if (!canUseStorage()) return false
+  try {
+    localStorage.setItem(STORAGE_KEYS.version, String(STORAGE_VERSION))
+    localStorage.setItem(key, JSON.stringify(value))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export const examStorage = {

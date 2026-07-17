@@ -5,7 +5,7 @@ import { examQuestionCount, flattenExam } from './types/exam'
 import type { ErrorReason, ExamProgress, ExamResult } from './types/result'
 import { parseExamJson, validateExam } from './lib/validation'
 import { examStorage, STORAGE_VERSION } from './lib/storage'
-import { scoreExam } from './lib/scoring'
+import { isAnswerEmpty, scoreExam } from './lib/scoring'
 import { formatDate, formatDuration, percent } from './lib/format'
 import { downloadText, makeExport, type ExportFormat } from './lib/export'
 
@@ -14,7 +14,7 @@ type ExamContextValue = {
   importedIds: Set<string>
   loading: boolean
   error: string
-  importExam: (exam: ExamPaper) => void
+  importExam: (exam: ExamPaper) => { ok: true; replaced: boolean } | { ok: false; message: string }
   removeImported: (examId: string) => void
 }
 
@@ -60,9 +60,16 @@ function ExamProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const importExam = (exam: ExamPaper) => {
-    const next = uniqueById([exam, ...imported])
+    if (builtIn.some((item) => item.examId === exam.examId)) {
+      return { ok: false as const, message: `试卷 ID“${exam.examId}”已被内置试卷使用，请修改 JSON 中的 examId 后再导入。` }
+    }
+    const replaced = imported.some((item) => item.examId === exam.examId)
+    const next = [exam, ...imported.filter((item) => item.examId !== exam.examId)]
+    if (!examStorage.saveImported(next)) {
+      return { ok: false as const, message: '无法保存试卷到浏览器本地。请清理部分浏览器存储空间后重试。' }
+    }
     setImported(next)
-    examStorage.saveImported(next)
+    return { ok: true as const, replaced }
   }
   const removeImported = (examId: string) => {
     const next = imported.filter((exam) => exam.examId !== examId)
@@ -133,7 +140,7 @@ function HomePage() {
           const progress = progresses[exam.examId]
           const attempts = history.filter((item) => item.examId === exam.examId)
           const count = examQuestionCount(exam)
-          const answered = progress ? Object.keys(progress.answers).length : 0
+          const answered = progress ? Object.values(progress.answers).filter((answer) => !isAnswerEmpty(answer)).length : 0
           return (
             <article className="exam-card" key={exam.examId} style={{ '--order': index } as React.CSSProperties}>
               <div className="card-topline"><span className="subject-tag">{exam.subject}</span><span>V{exam.version}</span></div>
@@ -167,13 +174,19 @@ function ImportPage() {
       setMessage({ type: 'error', text: '请选择扩展名为 .json 的试卷文件。' })
       return
     }
-    const result = parseExamJson(await file.text())
-    if (!result.ok) setMessage({ type: 'error', text: result.errors.slice(0, 5).join('；') })
-    else {
-      importExam(result.exam)
-      setMessage({ type: 'success', text: `已导入《${result.exam.title}》，共 ${examQuestionCount(result.exam)} 题，满分 ${result.exam.totalScore} 分。` })
+    try {
+      const result = parseExamJson(await file.text())
+      if (!result.ok) setMessage({ type: 'error', text: result.errors.slice(0, 5).join('；') })
+      else {
+        const imported = importExam(result.exam)
+        if (!imported.ok) setMessage({ type: 'error', text: imported.message })
+        else setMessage({ type: 'success', text: `${imported.replaced ? '已更新' : '已导入'}《${result.exam.title}》，共 ${examQuestionCount(result.exam)} 题，满分 ${result.exam.totalScore} 分。` })
+      }
+    } catch {
+      setMessage({ type: 'error', text: '读取文件失败，请确认文件未损坏且允许浏览器访问。' })
+    } finally {
+      event.target.value = ''
     }
-    event.target.value = ''
   }
   return (
     <>
@@ -233,7 +246,7 @@ function IntroPage() {
           <li>交卷后立即评分，并可记录错题原因、导出结果。</li>
         </ol>
       </div>
-      {saved && <div className="notice success">发现未完成记录：已答 {Object.keys(saved.answers).length} 题，已用 {formatDuration(saved.elapsedSeconds)}。</div>}
+      {saved && <div className="notice success">发现未完成记录：已答 {Object.values(saved.answers).filter((answer) => !isAnswerEmpty(answer)).length} 题，已用 {formatDuration(saved.elapsedSeconds)}。</div>}
       <div className="button-stack">
         <button className="button primary large" onClick={() => begin(false)}>{saved ? '继续上次考试' : '开始考试'}</button>
         {saved && <button className="button ghost" onClick={() => { if (confirm('重新开始会覆盖当前进度，确定吗？')) begin(true) }}>放弃进度，重新开始</button>}
@@ -313,7 +326,7 @@ function ExamPage() {
   const item = questions[currentIndex]
   const q = item.question
   const remaining = Math.max(0, exam.durationMinutes * 60 - progress.elapsedSeconds)
-  const unanswered = questions.filter(({ question }) => progress.answers[question.id] === undefined || progress.answers[question.id] === '').length
+  const unanswered = questions.filter(({ question }) => isAnswerEmpty(progress.answers[question.id])).length
   const marked = questions.filter(({ question }) => progress.marked.includes(question.id)).length
   const move = (index: number) => { save({ ...progress, currentIndex: Math.max(0, Math.min(questions.length - 1, index)), updatedAt: new Date().toISOString() }); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   const toggleMark = () => save({ ...progress, marked: progress.marked.includes(q.id) ? progress.marked.filter((id) => id !== q.id) : [...progress.marked, q.id], updatedAt: new Date().toISOString() })
@@ -354,7 +367,7 @@ function Passage({ passage, title, defaultExpanded }: { passage: string; title: 
 }
 
 function AnswerCard({ questions, progress, onJump, onClose, onSubmit }: { questions: FlatQuestion[]; progress: ExamProgress; onJump: (index: number) => void; onClose: () => void; onSubmit: () => void }) {
-  return <div className="sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section className="answer-card-sheet"><div className="sheet-handle" /><div className="sheet-title"><div><p className="eyebrow">NAVIGATION</p><h2>答题卡</h2></div><button className="icon-button" onClick={onClose}>×</button></div><div className="legend"><span><i className="answered" />已答</span><span><i />未答</span><span><i className="marked" />标记</span><span><i className="current" />当前</span></div><div className="number-grid">{questions.map(({ question }, index) => { const answered = progress.answers[question.id] !== undefined && progress.answers[question.id] !== ''; const marked = progress.marked.includes(question.id); return <button key={question.id} className={`${answered ? 'answered' : ''} ${marked ? 'marked' : ''} ${index === progress.currentIndex ? 'current' : ''}`} onClick={() => onJump(index)}>{index + 1}{marked && <sup>•</sup>}</button> })}</div><button className="button submit full" onClick={onSubmit}>检查并交卷</button></section></div>
+  return <div className="sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section className="answer-card-sheet"><div className="sheet-handle" /><div className="sheet-title"><div><p className="eyebrow">NAVIGATION</p><h2>答题卡</h2></div><button className="icon-button" onClick={onClose}>×</button></div><div className="legend"><span><i className="answered" />已答</span><span><i />未答</span><span><i className="marked" />标记</span><span><i className="current" />当前</span></div><div className="number-grid">{questions.map(({ question }, index) => { const answered = !isAnswerEmpty(progress.answers[question.id]); const marked = progress.marked.includes(question.id); return <button key={question.id} className={`${answered ? 'answered' : ''} ${marked ? 'marked' : ''} ${index === progress.currentIndex ? 'current' : ''}`} onClick={() => onJump(index)}>{index + 1}{marked && <sup>•</sup>}</button> })}</div><button className="button submit full" onClick={onSubmit}>检查并交卷</button></section></div>
 }
 
 function ResultPage() {
@@ -367,7 +380,7 @@ function ResultPage() {
   if (!result) return <EmptyState title="未找到成绩" text="这条成绩可能已被删除。" />
   const flat = flattenExam(result.examSnapshot)
   const byId = new Map(flat.map((item) => [item.question.id, item]))
-  const visible = result.questionResults.filter((item) => filter === 'all' || (filter === 'wrong' ? item.isCorrect === false && item.userAnswer !== undefined && item.userAnswer !== '' : item.marked))
+  const visible = result.questionResults.filter((item) => filter === 'all' || (filter === 'wrong' ? item.isCorrect === false && !isAnswerEmpty(item.userAnswer) : item.marked))
   const saveReason = (questionId: string, reason: ErrorReason) => { examStorage.saveReason(result.resultId, questionId, reason); setReasons(examStorage.getReasons()) }
   const startAgain = (questionIds?: string[]) => { examStorage.saveProgress(newProgress(result.examSnapshot, questionIds)); navigate(`/exam/${encodeURIComponent(result.examId)}`) }
   const exportResult = (format: ExportFormat) => { const content = makeExport(result, reasons, format); downloadText(content, `${result.examId}-${result.submittedAt.slice(0, 10)}.${format}`, format === 'json' ? 'application/json' : format === 'csv' ? 'text/csv' : 'text/plain') }
@@ -386,7 +399,7 @@ function ResultPage() {
       </section>
       <section className="result-actions">
         <button className="button primary" onClick={() => startAgain()}>重做整套试卷</button>
-        <button className="button ghost" disabled={!result.questionResults.some((item) => item.isCorrect === false && item.userAnswer !== undefined && item.userAnswer !== '')} onClick={() => startAgain(result.questionResults.filter((item) => item.isCorrect === false && item.userAnswer !== undefined && item.userAnswer !== '').map((item) => item.questionId))}>重新测试错题</button>
+        <button className="button ghost" disabled={!result.questionResults.some((item) => item.isCorrect === false && !isAnswerEmpty(item.userAnswer))} onClick={() => startAgain(result.questionResults.filter((item) => item.isCorrect === false && !isAnswerEmpty(item.userAnswer)).map((item) => item.questionId))}>重新测试错题</button>
       </section>
       <section className="export-panel"><div><h2>导出结果</h2><p>含答案、评分、用时、知识点和已记录的错因，便于交给 ChatGPT 分析。</p></div><div>{(['json', 'txt', 'csv'] as ExportFormat[]).map((format) => <button className="button ghost" key={format} onClick={() => exportResult(format)}>{format.toUpperCase()}</button>)}</div></section>
       <section className="review-section">
@@ -404,7 +417,7 @@ function AnalysisBlock({ title, groups }: { title: string; groups: ExamResult['b
 const errorReasons: ErrorReason[] = ['完全不会', '知识点遗忘', '方法选择错误', '计算粗心', '题意误读', '时间不足', '蒙题', '其他']
 function ReviewQuestion({ item, result, reason, onReason }: { item: FlatQuestion; result: ExamResult['questionResults'][number]; reason?: ErrorReason; onReason: (reason: ErrorReason) => void }) {
   const q = item.question
-  const unanswered = result.userAnswer === undefined || result.userAnswer === ''
+  const unanswered = isAnswerEmpty(result.userAnswer)
   const state = result.isCorrect ? 'correct' : result.isCorrect === null ? 'ungraded' : unanswered ? 'unanswered' : 'wrong'
   return <details className={`review-card ${state}`}><summary><span className="result-icon">{result.isCorrect ? '✓' : result.isCorrect === null || unanswered ? '—' : '×'}</span><div><strong>{q.question}</strong><small>{q.category} · {q.knowledgePoint} · 用时 {formatDuration(result.timeSeconds)}</small></div><span className="chevron">⌄</span></summary><div className="review-content">{item.passage && <div className="review-passage">{item.passage}</div>}<div className="review-options">{q.options?.map((option) => { const userPicked = Array.isArray(result.userAnswer) ? result.userAnswer.includes(option.key) : result.userAnswer === option.key; const correct = Array.isArray(result.correctAnswer) ? result.correctAnswer.includes(option.key) : result.correctAnswer === option.key; return <div key={option.key} className={`${correct ? 'correct-answer' : ''} ${userPicked && !correct ? 'wrong-answer' : ''}`}><span>{option.key}</span><p>{option.text}</p>{correct && <b>正确答案</b>}{userPicked && <em>你的选择</em>}</div> })}</div><div className="answer-summary">你的答案：<strong>{Array.isArray(result.userAnswer) ? result.userAnswer.join('、') : result.userAnswer || '未答'}</strong>　正确答案：<strong>{Array.isArray(result.correctAnswer) ? result.correctAnswer.join('、') : result.correctAnswer || '不自动评分'}</strong>　得分：<strong>{result.earnedScore}/{result.maxScore}</strong></div><div className="explanation"><span>解析</span><p>{q.explanation || '本题暂未提供解析。'}</p></div>{result.isCorrect === false && !unanswered && <label className="reason-select"><span>错误原因</span><select value={reason ?? ''} onChange={(event) => onReason(event.target.value as ErrorReason)}><option value="" disabled>请选择，便于后续复盘</option>{errorReasons.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>}</div></details>
 }
