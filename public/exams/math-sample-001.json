@@ -1,0 +1,115 @@
+{
+  "examId": "math-sample-001",
+  "title": "管综数学轻量测试 01",
+  "subject": "管综数学",
+  "description": "5 道原创基础题，用于检验答题、计时与评分流程。",
+  "durationMinutes": 12,
+  "totalScore": 15,
+  "version": "1.0",
+  "sections": [
+    {
+      "sectionId": "arithmetic-algebra",
+      "title": "算术与代数",
+      "passage": "",
+      "questions": [
+        {
+          "id": "math-q1",
+          "type": "single_choice",
+          "category": "算术",
+          "knowledgePoint": "百分数",
+          "difficulty": "基础",
+          "score": 3,
+          "question": "某商品先提价 20%，再按提价后的价格打八折出售，最终售价与原价相比如何？",
+          "options": [
+            { "key": "A", "text": "提高 4%" },
+            { "key": "B", "text": "降低 4%" },
+            { "key": "C", "text": "不变" },
+            { "key": "D", "text": "提高 2%" },
+            { "key": "E", "text": "降低 2%" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "设原价为 1，最终售价为 1×1.2×0.8=0.96，比原价降低 4%。"
+        },
+        {
+          "id": "math-q2",
+          "type": "single_choice",
+          "category": "代数",
+          "knowledgePoint": "一元二次方程",
+          "difficulty": "基础",
+          "score": 3,
+          "question": "方程 x²-5x+6=0 的两根之和为多少？",
+          "options": [
+            { "key": "A", "text": "-6" },
+            { "key": "B", "text": "-5" },
+            { "key": "C", "text": "5" },
+            { "key": "D", "text": "6" },
+            { "key": "E", "text": "11" }
+          ],
+          "correctAnswer": "C",
+          "explanation": "由韦达定理，两根之和为 -(-5)/1=5。"
+        }
+      ]
+    },
+    {
+      "sectionId": "geometry-probability",
+      "title": "几何与概率",
+      "passage": "",
+      "questions": [
+        {
+          "id": "math-q3",
+          "type": "single_choice",
+          "category": "平面几何",
+          "knowledgePoint": "三角形面积",
+          "difficulty": "基础",
+          "score": 3,
+          "question": "一个直角三角形的两条直角边分别为 6 和 8，其面积为多少？",
+          "options": [
+            { "key": "A", "text": "14" },
+            { "key": "B", "text": "24" },
+            { "key": "C", "text": "28" },
+            { "key": "D", "text": "48" },
+            { "key": "E", "text": "56" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "直角三角形面积为两直角边乘积的一半，即 6×8÷2=24。"
+        },
+        {
+          "id": "math-q4",
+          "type": "single_choice",
+          "category": "概率",
+          "knowledgePoint": "古典概型",
+          "difficulty": "中等",
+          "score": 3,
+          "question": "从装有 3 个红球和 2 个蓝球的袋中随机取出 1 球，取到蓝球的概率是多少？",
+          "options": [
+            { "key": "A", "text": "1/5" },
+            { "key": "B", "text": "2/5" },
+            { "key": "C", "text": "1/2" },
+            { "key": "D", "text": "3/5" },
+            { "key": "E", "text": "2/3" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "共有 5 个球，其中蓝球 2 个，概率为 2/5。"
+        },
+        {
+          "id": "math-q5",
+          "type": "single_choice",
+          "category": "数列",
+          "knowledgePoint": "等差数列",
+          "difficulty": "中等",
+          "score": 3,
+          "question": "等差数列首项为 2，公差为 3，则第 10 项为多少？",
+          "options": [
+            { "key": "A", "text": "27" },
+            { "key": "B", "text": "29" },
+            { "key": "C", "text": "30" },
+            { "key": "D", "text": "32" },
+            { "key": "E", "text": "35" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "a₁₀=a₁+9d=2+9×3=29。"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "examId": "logic-sample-001",
+  "title": "逻辑推理诊断测试 01",
+  "subject": "逻辑推理",
+  "description": "5 道原创逻辑题，覆盖条件关系、削弱与排序。",
+  "durationMinutes": 15,
+  "totalScore": 15,
+  "version": "1.0",
+  "sections": [
+    {
+      "sectionId": "formal-logic",
+      "title": "形式逻辑",
+      "passage": "",
+      "questions": [
+        {
+          "id": "logic-q1",
+          "type": "single_choice",
+          "category": "形式逻辑",
+          "knowledgePoint": "充分条件",
+          "difficulty": "基础",
+          "score": 3,
+          "question": "如果项目通过验收，那么奖金就会发放。已知奖金没有发放，可以推出什么？",
+          "options": [
+            { "key": "A", "text": "项目一定没有启动" },
+            { "key": "B", "text": "项目没有通过验收" },
+            { "key": "C", "text": "项目一定延期" },
+            { "key": "D", "text": "奖金制度已经取消" },
+            { "key": "E", "text": "无法得到任何结论" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "由“通过验收→发放奖金”和“未发放奖金”，根据否后必否前可知未通过验收。"
+        },
+        {
+          "id": "logic-q2",
+          "type": "single_choice",
+          "category": "形式逻辑",
+          "knowledgePoint": "必要条件",
+          "difficulty": "中等",
+          "score": 3,
+          "question": "只有完成培训，才能获得上岗资格。小李获得了上岗资格。以下哪项必然为真？",
+          "options": [
+            { "key": "A", "text": "小李完成了培训" },
+            { "key": "B", "text": "小李培训成绩第一" },
+            { "key": "C", "text": "完成培训的人都能上岗" },
+            { "key": "D", "text": "小李已经正式入职" },
+            { "key": "E", "text": "其他人都未完成培训" }
+          ],
+          "correctAnswer": "A",
+          "explanation": "完成培训是获得资格的必要条件，获得资格必然意味着完成培训。"
+        }
+      ]
+    },
+    {
+      "sectionId": "argumentation",
+      "title": "论证逻辑",
+      "passage": "",
+      "questions": [
+        {
+          "id": "logic-q3",
+          "type": "single_choice",
+          "category": "论证逻辑",
+          "knowledgePoint": "削弱论证",
+          "difficulty": "中等",
+          "score": 3,
+          "question": "某公司发现，采用弹性工作制后员工满意度提高，因此认为弹性工作制必然提高工作效率。以下哪项最能削弱该结论？",
+          "options": [
+            { "key": "A", "text": "员工普遍欢迎弹性工作制" },
+            { "key": "B", "text": "满意度调查由人力部门组织" },
+            { "key": "C", "text": "同期项目按时交付率反而下降" },
+            { "key": "D", "text": "其他公司也采用了弹性工作制" },
+            { "key": "E", "text": "该公司员工平均年龄较低" }
+          ],
+          "correctAnswer": "C",
+          "explanation": "按时交付率下降直接表明效率指标没有随满意度提高，削弱了从满意度到效率的推断。"
+        },
+        {
+          "id": "logic-q4",
+          "type": "single_choice",
+          "category": "论证逻辑",
+          "knowledgePoint": "加强论证",
+          "difficulty": "中等",
+          "score": 3,
+          "question": "研究者认为，办公室增加绿植能减少员工压力。以下哪项最能加强该结论？",
+          "options": [
+            { "key": "A", "text": "绿植需要定期浇水" },
+            { "key": "B", "text": "在其他条件相同的两组办公室中，有绿植组的压力指标显著更低" },
+            { "key": "C", "text": "部分员工喜欢绿色" },
+            { "key": "D", "text": "绿植采购费用较低" },
+            { "key": "E", "text": "办公室采光通常很好" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "控制其他条件的对照结果直接支持绿植与压力降低之间的因果关系。"
+        },
+        {
+          "id": "logic-q5",
+          "type": "single_choice",
+          "category": "分析推理",
+          "knowledgePoint": "排序",
+          "difficulty": "困难",
+          "score": 3,
+          "question": "甲、乙、丙三人依次发言，每人一次。甲不在第一位，乙在丙之前。以下哪种顺序符合条件？",
+          "options": [
+            { "key": "A", "text": "甲—乙—丙" },
+            { "key": "B", "text": "甲—丙—乙" },
+            { "key": "C", "text": "乙—甲—丙" },
+            { "key": "D", "text": "丙—乙—甲" },
+            { "key": "E", "text": "丙—甲—乙" }
+          ],
+          "correctAnswer": "C",
+          "explanation": "甲不在第一位且乙在丙之前，乙—甲—丙同时满足两个条件。"
+        }
+      ]
+    }
+  ]
+}

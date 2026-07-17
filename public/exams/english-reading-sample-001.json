@@ -1,0 +1,108 @@
+{
+  "examId": "english-reading-sample-001",
+  "title": "英语二阅读轻量测试 01",
+  "subject": "英语二",
+  "description": "1 篇原创短文、5 道阅读题，测试文章展开与连续作答。",
+  "durationMinutes": 18,
+  "totalScore": 10,
+  "version": "1.0",
+  "sections": [
+    {
+      "sectionId": "reading-a",
+      "title": "Reading Passage A",
+      "passage": "Many organizations once assumed that productivity depended mainly on the number of hours employees spent in the office. Remote work challenged that assumption. During its rapid expansion, managers discovered that some tasks benefited from quiet, independent work, while others suffered when informal conversations disappeared. The lesson was not that one location was always better, but that different kinds of work required different conditions.\n\nA growing number of companies have therefore adopted hybrid schedules. Yet simply allowing people to choose any day at home can create a new problem: teams may arrive at the office on different days and miss the collaboration they expected. Some firms now set shared “anchor days” for meetings and leave the remaining days flexible. This approach tries to preserve both coordination and autonomy.\n\nThe success of such policies is difficult to judge by a single measure. Employee satisfaction matters, but so do project speed, quality, staff retention and access to talent. A policy that improves one measure may weaken another. Effective managers treat hybrid work not as a permanent formula but as a system that should be tested, measured and adjusted.",
+      "questions": [
+        {
+          "id": "english-q1",
+          "type": "single_choice",
+          "category": "阅读理解",
+          "knowledgePoint": "主旨题",
+          "difficulty": "中等",
+          "score": 2,
+          "question": "The passage mainly discusses",
+          "options": [
+            { "key": "A", "text": "why office work should be completely abandoned" },
+            { "key": "B", "text": "how hybrid work policies should be designed and evaluated" },
+            { "key": "C", "text": "why employee satisfaction is the only useful measure" },
+            { "key": "D", "text": "how remote work reduces access to talent" },
+            { "key": "E", "text": "why managers dislike flexible schedules" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "全文从工作条件、anchor days 到多指标评估，核心是混合办公政策如何设计与调整。"
+        },
+        {
+          "id": "english-q2",
+          "type": "single_choice",
+          "category": "阅读理解",
+          "knowledgePoint": "细节题",
+          "difficulty": "基础",
+          "score": 2,
+          "question": "According to Paragraph 1, remote work showed that",
+          "options": [
+            { "key": "A", "text": "all tasks are best completed alone" },
+            { "key": "B", "text": "office hours directly determine productivity" },
+            { "key": "C", "text": "different tasks may need different working conditions" },
+            { "key": "D", "text": "informal conversations are unnecessary" },
+            { "key": "E", "text": "managers should stop measuring productivity" }
+          ],
+          "correctAnswer": "C",
+          "explanation": "第一段末句明确指出，不同类型的工作需要不同条件。"
+        },
+        {
+          "id": "english-q3",
+          "type": "single_choice",
+          "category": "阅读理解",
+          "knowledgePoint": "词义题",
+          "difficulty": "中等",
+          "score": 2,
+          "question": "The phrase “anchor days” most probably refers to days when",
+          "options": [
+            { "key": "A", "text": "every employee works from home" },
+            { "key": "B", "text": "team members are expected to be in the office together" },
+            { "key": "C", "text": "managers evaluate individual performance" },
+            { "key": "D", "text": "offices are closed for maintenance" },
+            { "key": "E", "text": "employees can freely change their tasks" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "上下文说公司设置共同的 anchor days 用于会议，因此指团队成员共同到办公室的日子。"
+        },
+        {
+          "id": "english-q4",
+          "type": "single_choice",
+          "category": "阅读理解",
+          "knowledgePoint": "推断题",
+          "difficulty": "中等",
+          "score": 2,
+          "question": "It can be inferred that allowing complete freedom in choosing office days may",
+          "options": [
+            { "key": "A", "text": "make planned collaboration less likely" },
+            { "key": "B", "text": "increase the cost of office space immediately" },
+            { "key": "C", "text": "eliminate employee autonomy" },
+            { "key": "D", "text": "improve every measure of performance" },
+            { "key": "E", "text": "prevent people from working independently" }
+          ],
+          "correctAnswer": "A",
+          "explanation": "第二段指出团队可能在不同日期到办公室，从而错过预期的协作。"
+        },
+        {
+          "id": "english-q5",
+          "type": "single_choice",
+          "category": "阅读理解",
+          "knowledgePoint": "态度题",
+          "difficulty": "困难",
+          "score": 2,
+          "question": "The author’s attitude toward hybrid work is best described as",
+          "options": [
+            { "key": "A", "text": "unconditionally enthusiastic" },
+            { "key": "B", "text": "strongly opposed" },
+            { "key": "C", "text": "indifferent" },
+            { "key": "D", "text": "pragmatic and evidence-oriented" },
+            { "key": "E", "text": "nostalgic about traditional offices" }
+          ],
+          "correctAnswer": "D",
+          "explanation": "作者强调测试、衡量和调整，并承认不同指标间的权衡，态度务实且重证据。"
+        }
+      ]
+    }
+  ]
+}
