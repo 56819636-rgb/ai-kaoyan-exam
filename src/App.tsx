@@ -332,7 +332,7 @@ function ExamPage() {
   const move = (index: number) => { save({ ...progress, currentIndex: Math.max(0, Math.min(questions.length - 1, index)), updatedAt: new Date().toISOString() }); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   const toggleMark = () => save({ ...progress, marked: progress.marked.includes(q.id) ? progress.marked.filter((id) => id !== q.id) : [...progress.marked, q.id], updatedAt: new Date().toISOString() })
   return (
-    <div className="exam-screen">
+    <div className={`exam-screen ${exam.subject === '英语二' ? 'english-exam' : ''}`}>
       <header className="exam-header">
         <button className="icon-button" onClick={() => navigate('/')} aria-label="退出考试">×</button>
         <div className="exam-position"><strong>{currentIndex + 1}</strong><span>/ {questions.length}</span></div>
