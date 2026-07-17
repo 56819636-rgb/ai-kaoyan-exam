@@ -432,9 +432,12 @@ function SettingsPage() {
   const [settings, setSettings] = useState(examStorage.getSettings())
   const [syncCode, setSyncCode] = useState(settings.syncCode ?? '')
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [syncing, setSyncing] = useState(false)
   const update = (key: keyof typeof settings, value: boolean) => { const next = { ...settings, [key]: value }; setSettings(next); examStorage.saveSettings(next) }
   const connect = async () => {
     if (!validSyncCode(syncCode)) { setSyncMessage({ type: 'error', text: '请输入 4 至 6 位数字同步码。' }); return }
+    setSyncing(true)
+    setSyncMessage({ type: 'success', text: '正在连接同步服务，请稍候…' })
     // Keep cloud sync disabled until the first pull or upload has finished.
     // This prevents a newly connected device from automatically overwriting
     // an existing cloud snapshot while it is still downloading it.
@@ -467,18 +470,21 @@ function SettingsPage() {
         setSettings({ ...nextSettings, cloudEnabled: false })
         setSyncMessage({ type: 'error', text: error instanceof Error ? error.message : '连接同步服务失败。' })
       }
-    }
+    } finally { setSyncing(false) }
   }
   const syncNow = async () => {
     if (!settings.cloudEnabled || !settings.syncCode) return
+    setSyncing(true)
+    setSyncMessage({ type: 'success', text: '正在上传当前数据，请稍候…' })
     try { await pushSnapshot(settings.syncCode); setSyncMessage({ type: 'success', text: '已上传当前试卷、答案和成绩。' }) }
     catch (error) { setSyncMessage({ type: 'error', text: error instanceof Error ? error.message : '同步失败。' }) }
+    finally { setSyncing(false) }
   }
   const disconnect = () => {
     const next = { ...settings, syncCode: undefined, cloudEnabled: false }
     examStorage.saveSettings(next); setSettings(next); setSyncCode(''); setSyncMessage({ type: 'success', text: '已断开本设备。云端数据不会删除。' })
   }
-  return <><PageTitle eyebrow="偏好" title="设置" text="设置会自动保存在当前浏览器。" /><div className="settings-card"><Toggle label="交卷前二次确认" description="显示未答题和标记题数量后再确认交卷。" checked={settings.confirmBeforeSubmit} onChange={(value) => update('confirmBeforeSubmit', value)} /><Toggle label="默认展开英语原文" description="进入阅读题时直接显示文章，也可以随时收起。" checked={settings.passageExpanded} onChange={(value) => update('passageExpanded', value)} /></div><section className="sync-card"><p className="eyebrow">DEVICE SYNC</p><h2>手机与电脑同步</h2><p>设置同一组数字后，导入试卷、答题进度、成绩和错题原因会自动同步。同步码简单易猜，仅用于非敏感练习数据。</p><label><span>同步码（4 至 6 位数字）</span><input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={syncCode} onChange={(event) => setSyncCode(normalizeSyncCode(event.target.value))} placeholder="例如 123456" /></label><div className="sync-actions"><button className="button primary" onClick={() => void connect()}>{settings.cloudEnabled ? '重新连接并下载' : '设置并连接'}</button>{settings.cloudEnabled && <><button className="button ghost" onClick={() => void syncNow()}>立即上传</button><button className="button ghost" onClick={disconnect}>断开本设备</button></>}</div>{syncMessage && <div className={`notice ${syncMessage.type}`}>{syncMessage.text}</div>}</section><div className="info-panel"><h2>本地数据说明</h2><p>即使开启同步，答题时仍会先保存到当前浏览器；断网也不会丢失。首次连接另一台设备时，云端数据会覆盖该设备的本地练习数据。</p></div></>
+  return <><PageTitle eyebrow="偏好" title="设置" text="设置会自动保存在当前浏览器。" /><div className="settings-card"><Toggle label="交卷前二次确认" description="显示未答题和标记题数量后再确认交卷。" checked={settings.confirmBeforeSubmit} onChange={(value) => update('confirmBeforeSubmit', value)} /><Toggle label="默认展开英语原文" description="进入阅读题时直接显示文章，也可以随时收起。" checked={settings.passageExpanded} onChange={(value) => update('passageExpanded', value)} /></div><section className="sync-card"><p className="eyebrow">DEVICE SYNC</p><h2>手机与电脑同步</h2><p>设置同一组数字后，导入试卷、答题进度、成绩和错题原因会自动同步。同步码简单易猜，仅用于非敏感练习数据。</p><label><span>同步码（4 至 6 位数字）</span><input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={syncCode} onChange={(event) => setSyncCode(normalizeSyncCode(event.target.value))} placeholder="例如 123456" /></label><div className="sync-actions"><button className="button primary" disabled={syncing} onClick={() => void connect()}>{syncing ? '正在连接…' : settings.cloudEnabled ? '重新连接并下载' : '设置并连接'}</button>{settings.cloudEnabled && <><button className="button ghost" disabled={syncing} onClick={() => void syncNow()}>{syncing ? '正在同步…' : '立即上传'}</button><button className="button ghost" disabled={syncing} onClick={disconnect}>断开本设备</button></>}</div>{syncMessage && <div className={`notice ${syncMessage.type}`}>{syncMessage.text}</div>}</section><div className="info-panel"><h2>本地数据说明</h2><p>即使开启同步，答题时仍会先保存到当前浏览器；断网也不会丢失。首次连接另一台设备时，云端数据会覆盖该设备的本地练习数据。</p></div></>
 }
 
 function CloudSyncBridge() {

@@ -1,6 +1,7 @@
 import { examStorage, type SyncSnapshot } from './storage'
 
 const endpoint = '/api/sync'
+const syncTimeoutMs = 12_000
 
 export class SyncNotFoundError extends Error {}
 
@@ -12,8 +13,19 @@ const messageFrom = async (response: Response) => {
 export const normalizeSyncCode = (value: string) => value.replace(/\D/g, '').slice(0, 6)
 export const validSyncCode = (value: string) => /^\d{4,6}$/.test(value)
 
+const requestSync = async (input: RequestInfo | URL, init?: RequestInit) => {
+  try {
+    return await fetch(input, { ...init, signal: AbortSignal.timeout(syncTimeoutMs) })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new Error('连接同步服务超时。请检查网络后重试。')
+    }
+    throw new Error('无法连接同步服务。请检查网络后重试。')
+  }
+}
+
 export const pushSnapshot = async (code: string) => {
-  const response = await fetch(endpoint, {
+  const response = await requestSync(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code, snapshot: examStorage.createSyncSnapshot() }),
@@ -22,7 +34,7 @@ export const pushSnapshot = async (code: string) => {
 }
 
 export const pullSnapshot = async (code: string): Promise<SyncSnapshot> => {
-  const response = await fetch(`${endpoint}?code=${encodeURIComponent(code)}`, { cache: 'no-store' })
+  const response = await requestSync(`${endpoint}?code=${encodeURIComponent(code)}`, { cache: 'no-store' })
   if (response.status === 404) throw new SyncNotFoundError()
   if (!response.ok) throw new Error(await messageFrom(response))
   return await response.json() as SyncSnapshot
