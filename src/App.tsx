@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type C
 import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { AnswerValue, ExamPaper, ExamQuestion, FlatQuestion } from './types/exam'
 import { examQuestionCount, flattenExam } from './types/exam'
-import type { ErrorReason, ExamProgress, ExamResult } from './types/result'
+import type { DailyReport, ErrorReason, ExamProgress, ExamResult } from './types/result'
 import { parseExamJson, validateExam } from './lib/validation'
 import { examStorage, STORAGE_VERSION } from './lib/storage'
 import { isAnswerEmpty, scoreExam } from './lib/scoring'
@@ -110,6 +110,7 @@ function Shell({ children }: { children: ReactNode }) {
           <NavLink to="/">试卷</NavLink>
           <NavLink to="/import">导入</NavLink>
           <NavLink to="/history">成绩</NavLink>
+          <NavLink to="/daily-report">日报</NavLink>
           <NavLink to="/settings">设置</NavLink>
         </nav>
       </header>
@@ -428,6 +429,74 @@ function HistoryPage() {
   return <><PageTitle eyebrow="学习轨迹" title="历史成绩" text={`已保存 ${history.length} 次作答记录，全部留在当前设备。`} />{history.length ? <div className="history-list">{history.map((result) => <div className="history-card" key={result.resultId}><div className="history-date"><strong>{new Date(result.submittedAt).getDate()}</strong><span>{new Intl.DateTimeFormat('zh-CN', { month: 'short' }).format(new Date(result.submittedAt))}</span></div><div className="history-main"><span className="subject-tag">{result.subject}</span><h3>{result.title}</h3><small>{formatDate(result.submittedAt)} · 用时 {formatDuration(result.elapsedSeconds)}</small></div><div className="history-score"><strong>{result.score}</strong><span>/{result.maxScore}</span><em>{percent(result.accuracy)}</em></div><div className="history-actions"><Link className="button ghost" to={`/result/${encodeURIComponent(result.resultId)}`}>详情</Link><button className="button danger ghost" onClick={() => { if (confirm('删除这次成绩记录？此操作不能撤销。')) { examStorage.deleteResult(result.resultId); setHistory(examStorage.getHistory()) } }}>删除</button></div></div>)}</div> : <EmptyState title="还没有成绩" text="完成并提交一套试卷后，记录会出现在这里。" />}</>
 }
 
+const todayKey = () => new Date().toLocaleDateString('en-CA')
+const blankDailyReport = (date = todayKey()): DailyReport => ({
+  date,
+  dayLabel: '',
+  totalMinutes: '',
+  commuteMinutes: '',
+  quietMinutes: '',
+  english: '',
+  math: '',
+  logic: '',
+  writing: '',
+  questionCount: '',
+  correctCount: '',
+  keyErrorTopic: '',
+  keyErrorReason: '',
+  unresolvedQuestion: '',
+  stateScore: '',
+  tomorrowTask: '',
+  updatedAt: new Date().toISOString(),
+})
+
+function DailyReportPage() {
+  const [reports, setReports] = useState(examStorage.getDailyReports())
+  const [report, setReport] = useState<DailyReport>(() => reports.find((item) => item.date === todayKey()) ?? blankDailyReport())
+  const [message, setMessage] = useState('')
+  const accuracy = Number(report.questionCount) > 0 ? Math.round(Number(report.correctCount || 0) / Number(report.questionCount) * 100) : null
+  const change = <K extends keyof DailyReport>(key: K, value: DailyReport[K]) => setReport((current) => ({ ...current, [key]: value }))
+  const chooseDate = (date: string) => {
+    const existing = reports.find((item) => item.date === date)
+    setReport(existing ?? blankDailyReport(date))
+    setMessage('')
+  }
+  const save = () => {
+    const next = { ...report, unresolvedQuestion: report.unresolvedQuestion.trim() || '无', updatedAt: new Date().toISOString() }
+    if (!examStorage.saveDailyReport(next)) { setMessage('保存失败，请检查浏览器存储空间。'); return }
+    setReport(next)
+    setReports(examStorage.getDailyReports())
+    setMessage('已保存今日学习汇报。')
+  }
+  const remove = (date: string) => {
+    if (!confirm('删除这份学习汇报？')) return
+    examStorage.deleteDailyReport(date)
+    const next = examStorage.getDailyReports()
+    setReports(next)
+    if (report.date === date) setReport(blankDailyReport())
+  }
+  return <>
+    <PageTitle eyebrow="每日复盘" title="每日学习汇报" text="每天用两分钟记录完成情况，给明天留下一条明确的起点。" />
+    <section className="daily-report-sheet">
+      <div className="daily-report-top"><div><p className="eyebrow">DAILY REPORT</p><h2>{report.dayLabel || 'Day X'} 学习汇报</h2></div><label>日期<input type="date" value={report.date} onChange={(event) => chooseDate(event.target.value)} /></label></div>
+      <label className="daily-day-label">Day 编号（可选）<input value={report.dayLabel} onChange={(event) => change('dayLabel', event.target.value)} placeholder="例如 Day 18" /></label>
+      <ReportSection number="1" title="实际学习时间"><div className="report-grid three"><NumberField label="共计（分钟）" value={report.totalMinutes} onChange={(value) => change('totalMinutes', value)} /><NumberField label="通勤（分钟）" value={report.commuteMinutes} onChange={(value) => change('commuteMinutes', value)} /><NumberField label="安静学习（分钟）" value={report.quietMinutes} onChange={(value) => change('quietMinutes', value)} /></div></ReportSection>
+      <ReportSection number="2" title="今日完成"><div className="report-grid two"><TextField label="英语" value={report.english} onChange={(value) => change('english', value)} /><TextField label="数学" value={report.math} onChange={(value) => change('math', value)} /><TextField label="逻辑" value={report.logic} onChange={(value) => change('logic', value)} /><TextField label="写作" value={report.writing} onChange={(value) => change('writing', value)} /></div></ReportSection>
+      <ReportSection number="3" title="今日结果"><div className="report-grid three"><NumberField label="做题（道）" value={report.questionCount} onChange={(value) => change('questionCount', value)} /><NumberField label="正确（道）" value={report.correctCount} onChange={(value) => change('correctCount', value)} /><div className="accuracy-box"><span>正确率</span><strong>{accuracy === null ? '—' : `${accuracy}%`}</strong></div></div></ReportSection>
+      <ReportSection number="4" title="今天最重要的一个错误"><div className="report-grid two"><TextField label="题目或知识点" value={report.keyErrorTopic} onChange={(value) => change('keyErrorTopic', value)} /><TextField label="错误原因" value={report.keyErrorReason} onChange={(value) => change('keyErrorReason', value)} /></div></ReportSection>
+      <ReportSection number="5" title="仍未解决的问题"><TextField label="没有则填写“无”" value={report.unresolvedQuestion} onChange={(value) => change('unresolvedQuestion', value)} /></ReportSection>
+      <ReportSection number="6" title="今日状态"><div className="state-score" role="radiogroup" aria-label="今日状态评分">{[1, 2, 3, 4, 5].map((score) => <button key={score} className={report.stateScore === String(score) ? 'selected' : ''} onClick={() => change('stateScore', String(score))} role="radio" aria-checked={report.stateScore === String(score)}>{score}<small>分</small></button>)}</div></ReportSection>
+      <ReportSection number="7" title="明天必须完成的最小任务"><TextField label="只写一件最小、明确、可完成的任务" value={report.tomorrowTask} onChange={(value) => change('tomorrowTask', value)} /></ReportSection>
+      <div className="daily-report-actions"><button className="button primary large" onClick={save}>保存今日汇报</button>{message && <span className={message.includes('失败') ? 'error-text' : 'success-text'}>{message}</span>}</div>
+    </section>
+    <section className="daily-history"><div className="section-heading compact"><div><p className="eyebrow">ARCHIVE</p><h2>已保存的学习汇报</h2></div><span>{reports.length} 天</span></div>{reports.length ? <div className="daily-history-list">{reports.map((item) => <article className="daily-history-card" key={item.date}><div><strong>{item.dayLabel || item.date}</strong><small>{item.date} · 学习 {item.totalMinutes || '—'} 分钟 · 状态 {item.stateScore || '—'} 分</small></div><p>{item.tomorrowTask || '未填写明日任务'}</p><div><button className="button ghost" onClick={() => { setReport(item); setMessage('') }}>查看/编辑</button><button className="button danger ghost" onClick={() => remove(item.date)}>删除</button></div></article>)}</div> : <p className="muted">还没有日报。今天写下第一份吧。</p>}</section>
+  </>
+}
+
+function ReportSection({ number, title, children }: { number: string; title: string; children: ReactNode }) { return <section className="report-section"><h3><span>{number}.</span>{title}</h3>{children}</section> }
+function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="report-field"><span>{label}</span><textarea value={value} onChange={(event) => onChange(event.target.value)} /></label> }
+function NumberField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="report-field"><span>{label}</span><input type="number" min="0" inputMode="numeric" value={value} onChange={(event) => onChange(event.target.value)} /></label> }
+
 function SettingsPage() {
   const [settings, setSettings] = useState(examStorage.getSettings())
   const [syncCode, setSyncCode] = useState(settings.syncCode ?? '')
@@ -513,5 +582,5 @@ function PageTitle({ eyebrow, title, text }: { eyebrow: string; title: string; t
 function EmptyState({ title, text }: { title: string; text: string }) { return <div className="empty"><span>◇</span><h2>{title}</h2><p>{text}</p></div> }
 
 export default function App() {
-  return <HashRouter><CloudSyncBridge /><ExamProvider><Shell><Routes><Route path="/" element={<HomePage />} /><Route path="/import" element={<ImportPage />} /><Route path="/intro/:examId" element={<IntroPage />} /><Route path="/exam/:examId" element={<ExamPage />} /><Route path="/result/:resultId" element={<ResultPage />} /><Route path="/history" element={<HistoryPage />} /><Route path="/settings" element={<SettingsPage />} /><Route path="*" element={<EmptyState title="页面不存在" text="请从顶部导航返回试卷列表。" />} /></Routes></Shell></ExamProvider></HashRouter>
+  return <HashRouter><CloudSyncBridge /><ExamProvider><Shell><Routes><Route path="/" element={<HomePage />} /><Route path="/import" element={<ImportPage />} /><Route path="/intro/:examId" element={<IntroPage />} /><Route path="/exam/:examId" element={<ExamPage />} /><Route path="/result/:resultId" element={<ResultPage />} /><Route path="/history" element={<HistoryPage />} /><Route path="/daily-report" element={<DailyReportPage />} /><Route path="/settings" element={<SettingsPage />} /><Route path="*" element={<EmptyState title="页面不存在" text="请从顶部导航返回试卷列表。" />} /></Routes></Shell></ExamProvider></HashRouter>
 }

@@ -78,3 +78,23 @@ export interface UserSettings {
   syncCode?: string
   cloudEnabled?: boolean
 }
+
+export interface DailyReport {
+  date: string
+  dayLabel: string
+  totalMinutes: string
+  commuteMinutes: string
+  quietMinutes: string
+  english: string
+  math: string
+  logic: string
+  writing: string
+  questionCount: string
+  correctCount: string
+  keyErrorTopic: string
+  keyErrorReason: string
+  unresolvedQuestion: string
+  stateScore: string
+  tomorrowTask: string
+  updatedAt: string
+}
