@@ -7,7 +7,7 @@ import { parseExamJson, validateExam } from './lib/validation'
 import { examStorage, STORAGE_VERSION } from './lib/storage'
 import { isAnswerEmpty, scoreExam } from './lib/scoring'
 import { formatDate, formatDuration, percent } from './lib/format'
-import { downloadText, makeExport, type ExportFormat } from './lib/export'
+import { downloadText, makeDailyReportExport, makeExport, type ExportFormat } from './lib/export'
 import { normalizeSyncCode, pullSnapshot, pushSnapshot, SyncNotFoundError, validSyncCode } from './lib/sync'
 
 type ExamContextValue = {
@@ -475,6 +475,14 @@ function DailyReportPage() {
     setReports(next)
     if (report.date === date) setReport(blankDailyReport())
   }
+  const exportReports = (scope: 'current' | 'all', format: ExportFormat) => {
+    const selected = scope === 'current' ? [report] : reports
+    if (!selected.length) { setMessage('还没有已保存的日报可以导出。'); return }
+    const filename = scope === 'current' ? `学习日报-${report.date}.${format}` : `学习日报汇总-${todayKey()}.${format}`
+    const mime = format === 'json' ? 'application/json' : format === 'csv' ? 'text/csv' : 'text/plain'
+    downloadText(makeDailyReportExport(selected, format), filename, mime)
+    setMessage(scope === 'current' ? `已导出当前日报 ${format.toUpperCase()}。` : `已导出全部 ${selected.length} 份日报 ${format.toUpperCase()}。`)
+  }
   return <>
     <PageTitle eyebrow="每日复盘" title="每日学习汇报" text="每天用两分钟记录完成情况，给明天留下一条明确的起点。" />
     <section className="daily-report-sheet">
@@ -488,6 +496,13 @@ function DailyReportPage() {
       <ReportSection number="6" title="今日状态"><div className="state-score" role="radiogroup" aria-label="今日状态评分">{[1, 2, 3, 4, 5].map((score) => <button key={score} className={report.stateScore === String(score) ? 'selected' : ''} onClick={() => change('stateScore', String(score))} role="radio" aria-checked={report.stateScore === String(score)}>{score}<small>分</small></button>)}</div></ReportSection>
       <ReportSection number="7" title="明天必须完成的最小任务"><TextField label="只写一件最小、明确、可完成的任务" value={report.tomorrowTask} onChange={(value) => change('tomorrowTask', value)} /></ReportSection>
       <div className="daily-report-actions"><button className="button primary large" onClick={save}>保存今日汇报</button>{message && <span className={message.includes('失败') ? 'error-text' : 'success-text'}>{message}</span>}</div>
+    </section>
+    <section className="daily-export-panel">
+      <div><p className="eyebrow">EXPORT & REVIEW</p><h2>导出与复盘</h2><p>TXT适合交给 ChatGPT 总结，CSV适合 Excel 统计，JSON用于完整备份。</p></div>
+      <div className="daily-export-groups">
+        <div><strong>当前填写</strong><div>{(['txt', 'csv', 'json'] as ExportFormat[]).map((format) => <button className="button ghost" key={format} onClick={() => exportReports('current', format)}>{format.toUpperCase()}</button>)}</div></div>
+        <div><strong>全部已保存（{reports.length}份）</strong><div>{(['txt', 'csv', 'json'] as ExportFormat[]).map((format) => <button className="button ghost" key={format} disabled={!reports.length} onClick={() => exportReports('all', format)}>{format.toUpperCase()}</button>)}</div></div>
+      </div>
     </section>
     <section className="daily-history"><div className="section-heading compact"><div><p className="eyebrow">ARCHIVE</p><h2>已保存的学习汇报</h2></div><span>{reports.length} 天</span></div>{reports.length ? <div className="daily-history-list">{reports.map((item) => <article className="daily-history-card" key={item.date}><div><strong>{item.dayLabel || item.date}</strong><small>{item.date} · 学习 {item.totalMinutes || '—'} 分钟 · 状态 {item.stateScore || '—'} 分</small></div><p>{item.tomorrowTask || '未填写明日任务'}</p><div><button className="button ghost" onClick={() => { setReport(item); setMessage('') }}>查看/编辑</button><button className="button danger ghost" onClick={() => remove(item.date)}>删除</button></div></article>)}</div> : <p className="muted">还没有日报。今天写下第一份吧。</p>}</section>
   </>

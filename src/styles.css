@@ -301,6 +301,15 @@ code { padding: 2px 6px; border-radius: 4px; background: #ebe7dc; font-size: .9e
 .state-score button small { margin-top: -7px; font-family: inherit; font-size: 10px; }
 .state-score button.selected { color: white; background: var(--green); border-color: var(--green); }
 .daily-report-actions { display: flex; align-items: center; gap: 15px; padding-top: 24px; }
+.daily-export-panel { display: grid; grid-template-columns: minmax(220px, .8fr) 1.2fr; gap: 28px; margin-top: 22px; padding: 24px 28px; color: white; background: var(--green); }
+.daily-export-panel h2 { margin: 5px 0 7px; font-family: 'Songti SC', 'STSong', serif; font-size: 23px; }
+.daily-export-panel p:not(.eyebrow) { margin: 0; color: rgba(255,255,255,.72); font-size: 13px; line-height: 1.65; }
+.daily-export-groups { display: grid; gap: 14px; }
+.daily-export-groups > div { display: grid; grid-template-columns: minmax(130px, 1fr) auto; align-items: center; gap: 12px; }
+.daily-export-groups strong { font-size: 13px; }
+.daily-export-groups > div > div { display: flex; gap: 7px; }
+.daily-export-groups .button { min-width: 64px; min-height: 42px; padding: 7px 10px; color: white; border-color: rgba(255,255,255,.35); }
+.daily-export-groups .button:disabled { cursor: not-allowed; opacity: .4; }
 .success-text { color: var(--green-2); font-weight: 700; }
 .error-text { color: var(--red); font-weight: 700; }
 .daily-history { margin-top: 50px; }
@@ -334,6 +343,10 @@ code { padding: 2px 6px; border-radius: 4px; background: #ebe7dc; font-size: .9e
   .report-grid.three, .report-grid.two { grid-template-columns: 1fr; }
   .state-score { justify-content: space-between; }
   .daily-report-actions { align-items: stretch; flex-direction: column; }
+  .daily-export-panel { grid-template-columns: 1fr; padding: 20px 16px; }
+  .daily-export-groups > div { grid-template-columns: 1fr; }
+  .daily-export-groups > div > div { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .daily-export-groups .button { width: 100%; min-height: 46px; }
   .daily-history-card { grid-template-columns: 1fr; gap: 10px; }
   .daily-history-card > div:last-child { display: grid; grid-template-columns: 1fr 1fr; }
   .sync-actions { display: grid; grid-template-columns: 1fr; }
