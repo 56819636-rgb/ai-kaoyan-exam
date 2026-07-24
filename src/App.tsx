@@ -455,7 +455,10 @@ function DailyReportPage() {
   const [report, setReport] = useState<DailyReport>(() => reports.find((item) => item.date === todayKey()) ?? blankDailyReport())
   const [message, setMessage] = useState('')
   const accuracy = Number(report.questionCount) > 0 ? Math.round(Number(report.correctCount || 0) / Number(report.questionCount) * 100) : null
-  const change = <K extends keyof DailyReport>(key: K, value: DailyReport[K]) => setReport((current) => ({ ...current, [key]: value }))
+  const change = <K extends keyof DailyReport>(key: K, value: DailyReport[K]) => {
+    setReport((current) => ({ ...current, [key]: value }))
+    setMessage('')
+  }
   const chooseDate = (date: string) => {
     const existing = reports.find((item) => item.date === date)
     setReport(existing ?? blankDailyReport(date))
@@ -505,6 +508,10 @@ function DailyReportPage() {
       </div>
     </section>
     <section className="daily-history"><div className="section-heading compact"><div><p className="eyebrow">ARCHIVE</p><h2>已保存的学习汇报</h2></div><span>{reports.length} 天</span></div>{reports.length ? <div className="daily-history-list">{reports.map((item) => <article className="daily-history-card" key={item.date}><div><strong>{item.dayLabel || item.date}</strong><small>{item.date} · 学习 {item.totalMinutes || '—'} 分钟 · 状态 {item.stateScore || '—'} 分</small></div><p>{item.tomorrowTask || '未填写明日任务'}</p><div><button className="button ghost" onClick={() => { setReport(item); setMessage('') }}>查看/编辑</button><button className="button danger ghost" onClick={() => remove(item.date)}>删除</button></div></article>)}</div> : <p className="muted">还没有日报。今天写下第一份吧。</p>}</section>
+    <div className="daily-report-mobile-save" role="region" aria-label="保存学习日报">
+      <span className={message.includes('失败') ? 'error-text' : ''}>{message || '日报填写中'}</span>
+      <button className="button primary" onClick={save}>{message.includes('已保存') ? '✓ 已保存' : '保存日报'}</button>
+    </div>
   </>
 }
 

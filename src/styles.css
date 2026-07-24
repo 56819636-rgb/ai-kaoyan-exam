@@ -320,6 +320,7 @@ code { padding: 2px 6px; border-radius: 4px; background: #ebe7dc; font-size: .9e
 .daily-history-card p { margin: 0; color: #526059; line-height: 1.55; }
 .daily-history-card > div:last-child { display: flex; gap: 7px; }
 .daily-history-card .button { min-height: 38px; padding: 7px 11px; }
+.daily-report-mobile-save { display: none; }
 
 @media (max-width: 820px) {
   .exam-grid, .analytics-grid { grid-template-columns: 1fr 1fr; }
@@ -349,6 +350,10 @@ code { padding: 2px 6px; border-radius: 4px; background: #ebe7dc; font-size: .9e
   .daily-export-groups .button { width: 100%; min-height: 46px; }
   .daily-history-card { grid-template-columns: 1fr; gap: 10px; }
   .daily-history-card > div:last-child { display: grid; grid-template-columns: 1fr 1fr; }
+  .daily-history { margin-bottom: 82px; }
+  .daily-report-mobile-save { position: fixed; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); left: 12px; z-index: 50; display: grid; grid-template-columns: minmax(0, 1fr) 132px; align-items: center; gap: 10px; padding: 10px; background: rgba(255,254,250,.96); border: 1px solid #c7cec8; border-radius: 8px; box-shadow: 0 8px 28px rgba(20,50,41,.22); backdrop-filter: blur(10px); }
+  .daily-report-mobile-save span { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .daily-report-mobile-save .button { width: 100%; min-height: 50px; }
   .sync-actions { display: grid; grid-template-columns: 1fr; }
   .sync-actions .button { width: 100%; }
   .hero { padding: 18px 0 45px; }
